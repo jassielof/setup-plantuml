@@ -13,9 +13,9 @@ inputs:
     required: false
     default: "latest"
   java-version:
-    description: Java version to use
+    description: Java (JRE) version to use (e.g., 21, 25, or 'latest-lts')
     required: false
-    default: "25"
+    default: "latest-lts"
   java-distribution:
     description: Java distribution to use
     required: false
@@ -24,12 +24,29 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Resolve Java version
+      id: resolve-java
+      shell: bash
+      run: |
+        JAVA_VERSION="${{ inputs.java-version }}"
+
+        if [ "$JAVA_VERSION" = "latest-lts" ]; then
+          # Query Adoptium API for latest LTS version
+          echo "Resolving latest LTS version from Adoptium API..."
+          JAVA_VERSION=$(curl -s "https://api.adoptium.net/v3/info/available_releases" | \
+            jq -r '.available_lts_releases | max')
+          echo "Latest LTS version: $JAVA_VERSION"
+        fi
+
+        echo "version=$JAVA_VERSION" >> "$GITHUB_OUTPUT"
+
     - name: Setup Java
       uses: actions/setup-java@v5
       with:
         distribution: ${{ inputs.java-distribution }}
         java-package: jre
-        java-version: ${{ inputs.java-version }}
+        java-version: ${{ steps.resolve-java.outputs.version }}
+
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v2
 
@@ -63,7 +80,6 @@ runs:
         fi
 
         echo "$INSTALL_DIR" >> "$GITHUB_PATH"
-
 
 outputs:
   version:
