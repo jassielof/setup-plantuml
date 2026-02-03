@@ -6,7 +6,7 @@ INSTALL_DIR="${INSTALL_DIR:-$GITHUB_WORKSPACE/.plantuml}"
 mkdir -p "$INSTALL_DIR"
 
 if [ "$VERSION" = "latest" ]; then
-  URL="https://github.com/plantuml/plantuml/releases/download/latest/plantuml.jar"
+  URL="https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar"
 else
   URL="https://github.com/plantuml/plantuml/releases/download/v${VERSION}/plantuml-${VERSION}.jar"
 fi
