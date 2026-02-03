@@ -27,11 +27,11 @@ runs:
       shell: bash
       run: |
         INSTALL_DIR="${{ github.workspace }}/.plantuml"
-        WRAPPER_PATH="${{ github.workspace }}/plantuml"
+        WRAPPER_PATH="$INSTALL_DIR/plantuml"
 
         cat > "$WRAPPER_PATH" << 'EOF'
         #!/bin/bash
-        exec java -jar "${{ github.workspace }}/.plantuml/plantuml.jar" "$@"
+        exec java -jar "${GITHUB_WORKSPACE}/.plantuml/plantuml.jar" "$@"
         EOF
 
         chmod +x "$WRAPPER_PATH"
