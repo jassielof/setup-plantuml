@@ -6,53 +6,12 @@ branding:
   color: red
 
 description: Install PlantUML CLI
-runs:
-  using: composite
-  steps:
-    - name: Setup Java
-      uses: actions/setup-java@v5
-      with:
-        distribution: ${{ inputs.java-distribution }}
-        java-package: jre # JDK only if we need to build it
-        java-version: ${{ inputs.java-version }}
-    - name: Setup Graphviz
-      uses: ts-graphviz/setup-graphviz@v2
-
-    - name: Download PlantUML
-      shell: bash
-      run: |
-        PLANTUML_VERSION=${{ inputs.version }}
-
-        DOWNLOAD_URL="https://github.com/plantuml/plantuml/releases/download/v${PLANTUML_VERSION}/plantuml-${PLANTUML_VERSION}.jar"
-        INSTALL_DIR="${{ github.workspace }}/.plantuml"
-
-        mkdir -p "${INSTALL_DIR}"
-        curl -L -o ${INSTALL_DIR}/plantuml.jar "${DOWNLOAD_URL}"
-
-    - name: Create wrapper script
-      shell: bash
-      run: |
-        INSTALL_DIR="${{ github.workspace }}/.plantuml"
-        WRAPPER_PATH="$INSTALL_DIR/plantuml"
-
-        cat > "$WRAPPER_PATH" << 'EOF'
-        #!/bin/bash
-        exec java -jar "${GITHUB_WORKSPACE}/.plantuml/plantuml.jar" "$@"
-        EOF
-
-        chmod +x "$WRAPPER_PATH"
-        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
-    - name: Verify installation
-      shell: bash
-      run: |
-        plantuml --version
-        plantuml --check-graphviz
 
 inputs:
   version:
-    description: PlantUML version to install
+    description: PlantUML version to install, either a specific version or "latest"
     required: false
-    default: "1.2026.1" # Find a way to type 'latest' or default to latest instead of fixing it to a specific version
+    default: "latest"
   java-version:
     description: Java version to use
     required: false
@@ -61,3 +20,58 @@ inputs:
     description: Java distribution to use
     required: false
     default: "temurin"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        distribution: ${{ inputs.java-distribution }}
+        java-package: jre
+        java-version: ${{ inputs.java-version }}
+    - name: Setup Graphviz
+      uses: ts-graphviz/setup-graphviz@v2
+
+    - name: Download PlantUML JAR
+      shell: bash
+      run: |
+        export VERSION="${{ inputs.version }}"
+        export INSTALL_DIR="${{ github.workspace }}/.plantuml"
+        bash "${{ github.action_path }}/scripts/download.bash"
+
+    - name: Setup wrapper script (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        INSTALL_DIR="${{ github.workspace }}/.plantuml"
+        cp "${{ github.action_path }}/scripts/plantuml" "$INSTALL_DIR/plantuml"
+        chmod +x "$INSTALL_DIR/plantuml"
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+
+    - name: Setup wrapper script (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        INSTALL_DIR="${{ github.workspace }}/.plantuml"
+        cp "${{ github.action_path }}/scripts/plantuml.cmd" "$INSTALL_DIR/plantuml.cmd"
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+
+    - name: Verify installation
+      id: setup
+      shell: bash
+      run: |
+        plantuml --version
+        plantuml --check-graphviz
+
+        # Extract version for output
+        INSTALLED_VERSION=$(plantuml --version | head -1 | awk '{print $3}')
+        echo "version=$INSTALLED_VERSION" >> "$GITHUB_OUTPUT"
+
+outputs:
+  version:
+    description: The installed PlantUML version
+    value: ${{ steps.setup.outputs.version }}
+  path:
+    description: The path where PlantUML is installed
+    value: ${{ github.workspace }}/.plantuml

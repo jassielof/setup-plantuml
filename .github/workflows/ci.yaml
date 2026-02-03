@@ -1,18 +1,118 @@
 name: CI
 
 on:
-    push:
-        branches: [main]
-    pull_request:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
+  test:
+    name: Test (${{ matrix.os }}, ${{ matrix.version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        version: [latest, 1.2026.1]
 
-        steps:
-            - uses: actions/checkout@v6
-            - uses: ./
-            - shell: bash
-              run: |
-                  plantuml --version
-                  plantuml --check-graphviz
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PlantUML (${{ matrix.version }})
+        uses: ./
+        with:
+          version: ${{ matrix.version }}
+
+      - name: Verify installation
+        shell: bash
+        run: |
+          echo "=== PlantUML Version ==="
+          plantuml --version
+          echo ""
+          echo "=== Graphviz Check ==="
+          plantuml --check-graphviz
+          echo ""
+          echo "=== Which PlantUML ==="
+          which plantuml || echo "which not available"
+          where plantuml || echo "where not available"
+
+      - name: Test diagram generation
+        shell: bash
+        run: |
+          mkdir -p test-output
+
+          # Create a test diagram
+          cat > test-diagram.puml << 'EOF'
+          @startuml
+          !define RECTANGLE class
+
+          title Test Diagram - ${{ matrix.os }}
+
+          package "Frontend" {
+            [Web App] as WebApp
+          }
+
+          package "Backend" {
+            [API Server] as API
+          }
+
+          package "Database" {
+            database "PostgreSQL" as DB
+          }
+
+          WebApp -> API : HTTP/REST
+          API -> DB : SQL
+
+          @enduml
+          EOF
+
+          # Generate SVG
+          plantuml -tsvg -o test-output test-diagram.puml
+
+          # Verify output
+          if [ -f "test-output/test-diagram.svg" ]; then
+            echo "✓ SVG generated successfully"
+            ls -la test-output/test-diagram.svg
+          else
+            echo "✗ Failed to generate SVG"
+            ls -la test-output/ || true
+            exit 1
+          fi
+
+          # Generate PNG
+          plantuml -tpng -o test-output test-diagram.puml
+
+          if [ -f "test-output/test-diagram.png" ]; then
+            echo "✓ PNG generated successfully"
+          else
+            echo "✗ Failed to generate PNG"
+            exit 1
+          fi
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagrams-${{ matrix.os }}-${{ matrix.version }}
+          path: test-output/
+
+  test-cache:
+    name: Test Cache
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: First run (populate cache)
+        uses: ./
+        with:
+          version: "1.2026.1"
+
+      - name: Second run (should use cache)
+        uses: ./
+        with:
+          version: "1.2026.1"
+
+      - name: Verify cached version works
+        run: plantuml --version
