@@ -1,1 +1,1 @@
-licen
+# Setup PlantUML action
