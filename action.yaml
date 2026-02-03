@@ -1,4 +1,10 @@
 name: Setup PlantUML
+author: Jassiel Ovando
+
+branding:
+  icon: image
+  color: red
+
 description: Install PlantUML CLI
 runs:
   using: composite
