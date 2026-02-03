@@ -49,24 +49,21 @@ runs:
         chmod +x "$INSTALL_DIR/plantuml"
         echo "$INSTALL_DIR" >> "$GITHUB_PATH"
 
-    - name: Setup wrapper script (Windows)
-      if: runner.os == 'Windows'
+    - name: Setup wrapper scripts
       shell: bash
       run: |
         INSTALL_DIR="${{ github.workspace }}/.plantuml"
-        cp "${{ github.action_path }}/scripts/plantuml.cmd" "$INSTALL_DIR/plantuml.cmd"
+        ACTION_DIR="${{ github.action_path }}"
+
+        cp "$ACTION_DIR/scripts/plantuml" "$INSTALL_DIR/plantuml"
+        chmod +x "$INSTALL_DIR/plantuml"
+
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          cp "$ACTION_DIR/scripts/plantuml.cmd" "$INSTALL_DIR/plantuml.cmd"
+        fi
+
         echo "$INSTALL_DIR" >> "$GITHUB_PATH"
 
-    - name: Verify installation
-      id: setup
-      shell: bash
-      run: |
-        plantuml --version
-        plantuml --check-graphviz
-
-        # Extract version for output
-        INSTALLED_VERSION=$(plantuml --version | head -1 | awk '{print $3}')
-        echo "version=$INSTALLED_VERSION" >> "$GITHUB_OUTPUT"
 
 outputs:
   version:
