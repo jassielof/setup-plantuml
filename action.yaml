@@ -46,6 +46,7 @@ runs:
         java-package: jre
         java-version: ${{ steps.resolve-java.outputs.version }}
 
+    # TODO: Migrate to another graphviz action, this one is slow on MacOS thanks to Homebrew and it seems unmaintained with all the DependaBot PRs open for months.
     - name: Setup Graphviz
       uses: ts-graphviz/setup-graphviz@v2
 

@@ -14,7 +14,7 @@ Install [PlantUML](https://plantuml.com) CLI on GitHub Actions runners with Java
 ## Usage
 
 ```yaml
-- uses: jassielof/setup-plantuml@v1
+- uses: jassielof/setup-plantuml@main
 - run: plantuml diagrams/*.puml
 ```
 
